@@ -103,11 +103,12 @@ server.tool("health", "检查read-along服务状态", {}, async () => {
 
 const app = express();
 
+const transport = new StreamableHTTPServerTransport({
+  sessionIdGenerator: undefined
+});
+await server.connect(transport);
+
 app.post("/mcp", async (req, res) => {
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined
-  });
-  await server.connect(transport);
   await transport.handleRequest(req, res);
 });
 
