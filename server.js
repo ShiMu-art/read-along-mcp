@@ -103,33 +103,15 @@ server.tool("health", "检查read-along服务状态", {}, async () => {
 
 const app = express();
 
-let transport = null;
-let connectPromise = null;
-
-async function getTransport() {
-  if (transport) return transport;
-  if (connectPromise) return connectPromise;
-  connectPromise = (async () => {
-    transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined
-    });
-    await server.connect(transport);
-    console.log("MCP transport connected");
-    return transport;
-  })();
-  return connectPromise;
-}
-
 app.post("/mcp", async (req, res) => {
-  try {
-    const t = await getTransport();
-    await t.handleRequest(req, res);
-  } catch (err) {
-    console.error("MCP error:", err.message, err.stack);
-    if (!res.headersSent) {
-      res.status(500).json({ error: err.message });
-    }
-  }
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+  });
+  res.on("close", () => {
+    transport.close().catch(() => {});
+  });
+  await server.connect(transport);
+  await transport.handleRequest(req, res);
 });
 
 app.get("/health", (_, res) => res.json({ ok: true }));
